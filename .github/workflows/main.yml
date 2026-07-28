@@ -20,21 +20,22 @@ jobs:
         target: i686-pc-windows-msvc
         override: true
 
-    - name: Setup vcpkg
-      uses: lukka/run-vcpkg@v10
-      with:
-        vcpkgGitCommitId: '501db0d17f24ded9229cbd182645f0a1a2bcfbcf'
-
-    - name: Install 32-bit vcpkg deps
+    # 直接用 vcpkg 的 git 仓库，不用 action
+    - name: Clone and bootstrap vcpkg
       run: |
-        $VCPKG_ROOT/vcpkg install libvpx:i686-windows-static libyuv:i686-windows-static opus:i686-windows-static aom:i686-windows-static
+        git clone https://github.com/microsoft/vcpkg.git
+        cd vcpkg
+        .\bootstrap-vcpkg.bat
+        .\vcpkg install libvpx:x86-windows-static libyuv:x86-windows-static opus:x86-windows-static aom:x86-windows-static
+      shell: cmd
+
+    - name: Set VCPKG_ROOT environment variable
+      run: echo "VCPKG_ROOT=${{ github.workspace }}\vcpkg" >> $GITHUB_ENV
       shell: bash
 
     - name: Build RustDesk
-      uses: actions-rs/cargo@v1
-      with:
-        command: build
-        args: --target i686-pc-windows-msvc --release
+      run: cargo build --target i686-pc-windows-msvc --release
+      shell: bash
 
     - name: Upload 32-bit EXE
       uses: actions/upload-artifact@v4
