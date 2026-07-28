@@ -7,6 +7,7 @@ jobs:
   build-win32:
     name: Build for i686 Windows
     runs-on: windows-latest
+    
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
@@ -20,22 +21,32 @@ jobs:
         target: i686-pc-windows-msvc
         override: true
 
-    # 直接用 vcpkg 的 git 仓库，不用 action
-    - name: Clone and bootstrap vcpkg
+    # 直接用 cmd 脚本下载并安装 vcpkg 依赖
+    - name: Setup vcpkg and install 32-bit dependencies
       run: |
-        git clone https://github.com/microsoft/vcpkg.git
+        cd %GITHUB_WORKSPACE%
+        git clone --depth 1 https://github.com/microsoft/vcpkg.git
         cd vcpkg
-        .\bootstrap-vcpkg.bat
+        .\bootstrap-vcpkg.bat -disableMetrics
         .\vcpkg install libvpx:x86-windows-static libyuv:x86-windows-static opus:x86-windows-static aom:x86-windows-static
       shell: cmd
 
-    - name: Set VCPKG_ROOT environment variable
-      run: echo "VCPKG_ROOT=${{ github.workspace }}\vcpkg" >> $GITHUB_ENV
+    - name: Set environment variables
+      run: |
+        echo "VCPKG_ROOT=${{ github.workspace }}\vcpkg" >> $GITHUB_ENV
+        echo "VCPKG_FEATURE_FLAGS=-manifests" >> $GITHUB_ENV
       shell: bash
 
-    - name: Build RustDesk
+    # 清理可能干扰编译的旧文件
+    - name: Clean target directory
+      run: cargo clean
+      shell: bash
+
+    - name: Build RustDesk 32-bit
       run: cargo build --target i686-pc-windows-msvc --release
       shell: bash
+      env:
+        VCPKG_ROOT: ${{ github.workspace }}\vcpkg
 
     - name: Upload 32-bit EXE
       uses: actions/upload-artifact@v4
