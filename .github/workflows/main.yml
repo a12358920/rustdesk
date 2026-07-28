@@ -21,7 +21,6 @@ jobs:
         target: i686-pc-windows-msvc
         override: true
 
-    # 直接用 cmd 脚本下载并安装 vcpkg 依赖
     - name: Setup vcpkg and install 32-bit dependencies
       run: |
         cd %GITHUB_WORKSPACE%
@@ -35,11 +34,6 @@ jobs:
       run: |
         echo "VCPKG_ROOT=${{ github.workspace }}\vcpkg" >> $GITHUB_ENV
         echo "VCPKG_FEATURE_FLAGS=-manifests" >> $GITHUB_ENV
-      shell: bash
-
-    # 清理可能干扰编译的旧文件
-    - name: Clean target directory
-      run: cargo clean
       shell: bash
 
     - name: Build RustDesk 32-bit
