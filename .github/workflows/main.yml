@@ -30,17 +30,42 @@ jobs:
         .\vcpkg install libvpx:x86-windows-static libyuv:x86-windows-static opus:x86-windows-static aom:x86-windows-static
       shell: cmd
 
-    - name: Set environment variables
+    - name: Set all required environment variables
       run: |
         echo "VCPKG_ROOT=${{ github.workspace }}\vcpkg" >> $GITHUB_ENV
         echo "VCPKG_FEATURE_FLAGS=-manifests" >> $GITHUB_ENV
+        echo "DEP_OPUS_INCLUDE=${{ github.workspace }}\vcpkg\installed\x86-windows-static\include" >> $GITHUB_ENV
+        echo "DEP_OPUS_LIB=${{ github.workspace }}\vcpkg\installed\x86-windows-static\lib" >> $GITHUB_ENV
+        echo "OPUS_STATIC=1" >> $GITHUB_ENV
+        echo "RUSTFLAGS=-L ${{ github.workspace }}\vcpkg\installed\x86-windows-static\lib" >> $GITHUB_ENV
       shell: bash
 
+    # 额外安装缺失的 opus 开发包（备用方案）
+    - name: Install opus via vcpkg with debug output
+      run: |
+        cd %GITHUB_WORKSPACE%\vcpkg
+        .\vcpkg install opus:x86-windows-static --recurse
+      shell: cmd
+
+    - name: Verify opus files exist
+      run: |
+        dir "%GITHUB_WORKSPACE%\vcpkg\installed\x86-windows-static\include\opus" || echo "opus folder not found"
+        dir "%GITHUB_WORKSPACE%\vcpkg\installed\x86-windows-static\lib" || echo "lib folder not found"
+      shell: cmd
+
     - name: Build RustDesk 32-bit
-      run: cargo build --target i686-pc-windows-msvc --release
+      run: |
+        cargo build --target i686-pc-windows-msvc --release
       shell: bash
       env:
         VCPKG_ROOT: ${{ github.workspace }}\vcpkg
+        DEP_OPUS_INCLUDE: ${{ github.workspace }}\vcpkg\installed\x86-windows-static\include
+        DEP_OPUS_LIB: ${{ github.workspace }}\vcpkg\installed\x86-windows-static\lib
+        OPUS_STATIC: 1
+        RUSTFLAGS: -L ${{ github.workspace }}\vcpkg\installed\x86-windows-static\lib
+        # 增加编译时搜索路径
+        INCLUDE: ${{ github.workspace }}\vcpkg\installed\x86-windows-static\include
+        LIB: ${{ github.workspace }}\vcpkg\installed\x86-windows-static\lib
 
     - name: Upload 32-bit EXE
       uses: actions/upload-artifact@v4
