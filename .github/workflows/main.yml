@@ -1,0 +1,43 @@
+name: Build Windows 32-bit
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-win32:
+    name: Build for i686 Windows
+    runs-on: windows-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Install Rust toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        target: i686-pc-windows-msvc
+        override: true
+
+    - name: Setup vcpkg
+      uses: lukka/run-vcpkg@v10
+      with:
+        vcpkgGitCommitId: '501db0d17f24ded9229cbd182645f0a1a2bcfbcf'
+
+    - name: Install 32-bit vcpkg deps
+      run: |
+        $VCPKG_ROOT/vcpkg install libvpx:i686-windows-static libyuv:i686-windows-static opus:i686-windows-static aom:i686-windows-static
+      shell: bash
+
+    - name: Build RustDesk
+      uses: actions-rs/cargo@v1
+      with:
+        command: build
+        args: --target i686-pc-windows-msvc --release
+
+    - name: Upload 32-bit EXE
+      uses: actions/upload-artifact@v4
+      with:
+        name: rustdesk-win32
+        path: target/i686-pc-windows-msvc/release/rustdesk.exe
